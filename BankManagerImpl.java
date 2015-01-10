@@ -40,6 +40,13 @@ public class BankManagerImpl implements BankManager {
      *            his password
      */
     public BankManagerImpl(String url, String user, String password) throws SQLException {
+        try{
+            Class.forName("com.mysql.jdbc.Driver");
+        }
+        catch(ClassNotFoundException exc)
+        {
+            System.out.println("Erreur de chargement du driver: \n"+exc.getMessage());
+        }
         //création d'une connexion JDBC à la base
         conn = DriverManager.getConnection(url,user,password);
 
@@ -67,23 +74,38 @@ public class BankManagerImpl implements BankManager {
     public void createDB() throws SQLException {
 	// TODO Auto-generated method stub
         String requete_creation1 = "CREATE TABLE Operations("
-                + "Id INT ,"
+                + "Id INT AUTO_INCREMENT,"
+                + "Transfer INT,"
                 + "Account INT,"
                 + "Date DATE,"
                 + "PRIMARY KEY(Id),"
-                + "FOREIGN KEY(Account) REFERENCES ACCOUNT(Id));"; 
+                + "FOREIGN KEY(Account) REFERENCES Account(Id));"; 
         String requete_creation2 = "CREATE TABLE Account("
                 + "Id INT, "
-                + "Balance DECIMAL(6,2));";
+                + "Balance REAL CHECK ( Balance >= 0.00),"
+                + "primary key (Id));";
         
+        String requete_trigger = "CREATE TRIGGER OperationTrig "
+                + "AFTER UPDATE ON Account "
+                + "FOR EACH ROW "
+               + "INSERT INTO `operations`(`Transfer`, `Account`, `Date`) VALUES( NEW.Balance - OLD.Balance, OLD.Id,CURDATE()) ";
+     
         try{
             stmt.executeUpdate(requete_creation2);
+        }
+        catch(SQLException exc)
+        {
+            System.out.println("Erreur de création de la table: \n"+exc.getMessage());
+        }
+        try{
             stmt.executeUpdate(requete_creation1);
         }
         catch(SQLException exc)
         {
             System.out.println("Erreur de création de la table: \n"+exc.getMessage());
         }
+        
+        stmt.executeUpdate(requete_trigger);
         
     }
     
